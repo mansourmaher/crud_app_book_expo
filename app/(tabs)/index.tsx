@@ -31,8 +31,28 @@ export default function HomeScreen() {
           );
         `);
       }
+      async function createTableBookedBooks() {
+        await db.execAsync(`
+          CREATE TABLE IF NOT EXISTS bookedBooks (
+            id INTEGER PRIMARY KEY NOT NULL,
+            title TEXT NOT NULL,
+            author TEXT NOT NULL,
+            createdAt TEXT NOT NULL,
+            description TEXT NOT NULL,
+            image TEXT NOT NULL,
+            quantite INTEGER NOT NULL
+          );
+        `);
+      }
+      async function seeWichQuiriesIsRuuning() {
+        const tt = await db.execAsync(`
+          SELECT * FROM sqlite_master;
+        `);
+      }
+      await createTableBookedBooks();
 
       await createTable();
+      await seeWichQuiriesIsRuuning();
 
       const insertData = async () => {
         await db.runAsync(
@@ -61,8 +81,7 @@ export default function HomeScreen() {
 
       const fetchData = async () => {
         const allRows = await db.getAllAsync("SELECT * FROM books");
-        console.log(allRows);
-        console.log("allRows");
+
         setBooks(allRows);
       };
 

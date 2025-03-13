@@ -13,6 +13,8 @@ import { BookList } from "@/data/book";
 import BookItem from "@/compoenets/bookItem";
 import { BookContext, BookProvider } from "@/context/bookContext";
 import * as SQLite from "expo-sqlite";
+import PannierBookItem from "@/compoenets/pannierBookItem";
+import { ca } from "react-native-paper-dates";
 
 const Pannier = () => {
   const { id } = useLocalSearchParams();
@@ -32,11 +34,17 @@ const Pannier = () => {
     const fetchBook = async () => {
       const db = await SQLite.openDatabaseAsync("books.db");
       const book = await db.getFirstAsync("SELECT * FROM books WHERE id = ?", [
-        id[0],
+        id,
       ]);
       setBook(book);
-      console.log(book);
     };
+    const fetchBookedBooks = async () => {
+      const db = await SQLite.openDatabaseAsync("books.db");
+      const bookedBooks = await db.getAllAsync("SELECT * FROM bookedBooks");
+      setBookedList(bookedBooks);
+    };
+    fetchBookedBooks();
+
     fetchBook();
   }, [id]);
 
@@ -44,17 +52,74 @@ const Pannier = () => {
     if (book) {
       navigation.setOptions({
         title: book.title,
+        headerBackTitleVisible: true,
       });
     }
   }, [book, navigation]);
+  const fetchSpecificBook = async (id: string) => {
+    console.log("🔍 Fetching book with id:", id);
 
-  const handleBook = () => {
-    const newBooking = { ...book };
-    console.log(newBooking, { id: bookedBooks.length + 1, quantity: quantity });
-    dispatch({ type: "ADD_TO_PANNIER", payload: newBooking });
-    console.log(bookedBooks.length);
-    //dispatch({ type: "ADD_TO_PANNIER", payload: newBooking });
+    const db = await SQLite.openDatabaseAsync("books.db");
+
+    try {
+      const book = await db.getFirstAsync(
+        "SELECT * FROM bookedBooks WHERE id = ?",
+        [parseInt(id)]
+      );
+      console.log("✅ Found book:", book);
+      return book;
+    } catch (error) {
+      console.error("❌ Error fetching book:", error);
+      return null;
+    }
   };
+  const handelAddBookToPannierSqlite = async () => {
+    const db = await SQLite.openDatabaseAsync("books.db");
+    console.log("book", id);
+    // const dleeteallbooked = await db.runAsync("DELETE FROM bookedBooks");
+
+    const existingBook = await fetchSpecificBook(id);
+    if (existingBook) {
+      console.log("existingBook", existingBook);
+      try {
+        await db.runAsync("UPDATE bookedBooks SET quantite = ? WHERE id = ?", [
+          existingBook.quantite + parseInt(quantity),
+          id,
+        ]);
+      } catch (e) {
+        console.log(e);
+      }
+
+      router.replace(`/pannier/${id}`);
+      return;
+    } else if (!existingBook) {
+      try {
+        await db.runAsync(
+          "INSERT INTO bookedBooks (id,title, author, createdAt, description, image,quantite) VALUES (?,?, ?, ?, ?, ?,?)",
+          [
+            id,
+            book.title,
+            book.author,
+            book.createdAt,
+            book.description,
+            book.image,
+            quantity,
+          ]
+        );
+      } catch (e) {
+        console.log(e);
+      }
+    }
+    router.replace(`/pannier/${id}`);
+  };
+
+  // const handleBook = () => {
+  //   const newBooking = { ...book };
+  //   console.log(newBooking, { id: bookedBooks.length + 1, quantity: quantity });
+  //   dispatch({ type: "ADD_TO_PANNIER", payload: newBooking });
+  //   console.log(bookedBooks.length);
+  //   //dispatch({ type: "ADD_TO_PANNIER", payload: newBooking });
+  // };
 
   if (!book) {
     return (
@@ -77,12 +142,15 @@ const Pannier = () => {
         onChangeText={setQuantity}
       />
 
-      <Pressable style={styles.pressablestyle} onPress={handleBook}>
+      <Pressable
+        style={styles.updateButton}
+        onPress={handelAddBookToPannierSqlite}
+      >
         <Text style={styles.buttonText}>Add to Booking List</Text>
       </Pressable>
       <View style={{ marginTop: 20 }}>
         <FlatList
-          data={bookedBooks}
+          data={bookedList}
           keyExtractor={(item) => item.id.toString()}
           showsVerticalScrollIndicator={false}
           ListHeaderComponent={() => (
@@ -92,7 +160,7 @@ const Pannier = () => {
               Book List
             </Text>
           )}
-          renderItem={({ item }) => <BookItem book={item} />}
+          renderItem={({ item }) => <PannierBookItem book={item} />}
         />
       </View>
     </View>
@@ -104,6 +172,7 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 20,
     backgroundColor: "#fff",
+    alignItems: "center",
   },
   pressablestyle: {
     backgroundColor: "orange",
@@ -157,6 +226,19 @@ const styles = StyleSheet.create({
     marginVertical: 10,
     borderRadius: 5,
     width: "100%",
+  },
+  updateButton: {
+    backgroundColor: "#3f7dcd",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    width: "80%",
+    shadowColor: "#3f7dcd",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    marginBottom: 10,
   },
 });
 

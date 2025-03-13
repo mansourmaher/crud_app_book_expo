@@ -36,7 +36,7 @@ const DetailPage = () => {
   }, [book, navigation]);
 
   const deleteBook = async () => {
-    // Confirmation before deleting
+    
     Alert.alert(
       "Delete Book",
       "Are you sure you want to delete this book?",
@@ -48,8 +48,12 @@ const DetailPage = () => {
         {
           text: "Delete",
           onPress: async () => {
-            const db = await SQLite.openDatabaseAsync("books.db");
-            await db.runAsync("DELETE FROM books WHERE id = ?", [id]);
+            try {
+              const db = await SQLite.openDatabaseAsync("books.db");
+              await db.runAsync("DELETE FROM books WHERE id = ?", [id]);
+            } catch (e) {
+              console.log(e);
+            }
 
             // Navigate back to the previous screen or book list
             router.replace("/(tabs)");
@@ -58,6 +62,9 @@ const DetailPage = () => {
       ],
       { cancelable: true }
     );
+  };
+  const handelMoveToPannier = () => {
+    router.replace(`/pannier/${id}`);
   };
 
   if (!book) {
@@ -87,6 +94,12 @@ const DetailPage = () => {
 
       <TouchableOpacity style={styles.deleteButton} onPress={deleteBook}>
         <Text style={styles.buttonText}>🗑️ Delete Book</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.pannierBuuton}
+        onPress={handelMoveToPannier}
+      >
+        <Text style={styles.buttonText}>🛒 Add to pannier</Text>
       </TouchableOpacity>
     </View>
   );
@@ -160,6 +173,19 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 16,
     fontWeight: "bold",
+  },
+  pannierBuuton: {
+    backgroundColor: "#00FF00",
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    width: "80%",
+    shadowColor: "#3f7dcd",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    marginTop: 10,
   },
 });
 
